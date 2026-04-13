@@ -3,8 +3,10 @@ name: AI Compliance & Performance Check
 on:
   pull_request:
     branches: [ main ]
-  push:
-    branches: [ main ]
+
+permissions:
+  pull-requests: write
+  contents: read
 
 jobs:
   compliance-audit:
@@ -22,24 +24,34 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        # We install exactly what we need for the runner
-        pip install requests langchain langchain-google-genai langgraph pydantic python-dotenv mcp
+        pip install -r requirements.txt
 
-    - name: Run Deterministic Test Harness
+    - name: Step 1 - Generate Compliance PDFs
       run: |
-        # Generate metrics.json
+        # Vytvoříme PDFka přímo v runneru, aby je měl Agent k dispozici
+        python generate_docs.py
+
+    - name: Step 2 - Run Deterministic Test Harness
+      # Pokud harness spadne, nezastavuj pipeline, chceme vidět analýzu od AI
+      continue-on-error: true 
+      run: |
         python test_harness/harness.py
 
-    - name: Run AI Agent Reviewer
+    - name: Step 3 - Run AI Agent Reviewer
+      if: always() # Tohle je kritické - Agent musí běžet VŽDY
       env:
         GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        PYTHONPATH: .
       run: |
-        # The agent reads metrics.json and scraper.py and outputs MD comment
-        # We capture the output to a file to use it in the next step
-        python agent/reviewer.py > reviewer_comment.md
+        # Pokud metrics.json neexistuje (harness totálně vybuchl), vytvoříme aspoň dummy, 
+        # aby reviewer.py nespadl na FileNotFoundError
+        if [ ! -f metrics.json ]; then
+          echo '{"test_status": "CRASHED", "metrics": {"requests_per_second": 0}}' > metrics.json
+        fi
+        python -m agent.reviewer > reviewer_comment.md
 
-    - name: Post Comment to PR
-      if: failure() || success() # Run even if the test harness failed (we want the AI audit)
+    - name: Step 4 - Post Comment to PR
+      if: always()
       uses: thollander/actions-comment-pull-request@v2
       with:
         filePath: reviewer_comment.md

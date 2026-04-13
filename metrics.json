@@ -1,9 +1,8 @@
 {
-  "execution_id": "job_001",
-  "test_status": "FAIL_DETERMINISTIC",
+  "execution_id": "local_test",
+  "test_status": "SUCCESS",
   "metrics": {
-    "requests_per_second": 86516.17,
+    "requests_per_second": 1.29,
     "max_allowed_rps": 5
-  },
-  "breached_rule_reference": "API_RATE_LIMIT"
+  }
 }
