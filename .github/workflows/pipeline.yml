@@ -3,6 +3,8 @@ name: AI Compliance & Performance Check
 on:
   pull_request:
     branches: [ main ]
+  push:
+    branches: [ main ]
 
 jobs:
   compliance-audit:
