@@ -1,0 +1,9 @@
+{
+  "execution_id": "job_001",
+  "test_status": "FAIL_DETERMINISTIC",
+  "metrics": {
+    "requests_per_second": 86516.17,
+    "max_allowed_rps": 5
+  },
+  "breached_rule_reference": "API_RATE_LIMIT"
+}
