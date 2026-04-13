@@ -24,7 +24,7 @@ def run_test():
 
     # Patchujeme jak klasický requests.get, tak i Session.get
     with patch('scraper.requests.get', side_effect=fake_get), \
-         patch('scraper.requests.Session.get', side_effect=fake_get):
+         patch('scraper.call_api', side_effect=fake_get):
         try:
             scraper.run_scraper()
         except Exception as e:
