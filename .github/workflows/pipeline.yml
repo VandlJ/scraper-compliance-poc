@@ -24,21 +24,29 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install requests langchain langchain-google-genai langgraph pydantic python-dotenv mcp
+        pip install -r requirements.txt
 
-    - name: Run Deterministic Test Harness
+    - name: Step 1 - Generate Compliance PDFs
       run: |
+        # Vytvoříme PDFka přímo v runneru, aby je měl Agent k dispozici
+        python generate_docs.py
+
+    - name: Step 2 - Run Deterministic Test Harness
+      run: |
+        # Spustíme testy a vygenerujeme metrics.json
         python test_harness/harness.py
 
-    - name: Run AI Agent Reviewer
+    - name: Step 3 - Run AI Agent Reviewer
       env:
         GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        PYTHONPATH: .
       run: |
-        # stderr jde do logu, stdout (Markdown) jde do souboru
-        python agent/reviewer.py > reviewer_comment.md
+        # Spustíme agenta jako modul a zachytíme výstup
+        # Výstupy do stderr uvidíš v logu, stdout se uloží do md
+        python -m agent.reviewer > reviewer_comment.md
 
-    - name: Post Comment to PR
-      if: always() 
+    - name: Step 4 - Post Comment to PR
+      if: always()
       uses: thollander/actions-comment-pull-request@v2
       with:
         filePath: reviewer_comment.md
