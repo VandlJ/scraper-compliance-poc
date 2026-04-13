@@ -32,17 +32,22 @@ jobs:
         python generate_docs.py
 
     - name: Step 2 - Run Deterministic Test Harness
+      # Pokud harness spadne, nezastavuj pipeline, chceme vidět analýzu od AI
+      continue-on-error: true 
       run: |
-        # Spustíme testy a vygenerujeme metrics.json
         python test_harness/harness.py
 
     - name: Step 3 - Run AI Agent Reviewer
+      if: always() # Tohle je kritické - Agent musí běžet VŽDY
       env:
         GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
         PYTHONPATH: .
       run: |
-        # Spustíme agenta jako modul a zachytíme výstup
-        # Výstupy do stderr uvidíš v logu, stdout se uloží do md
+        # Pokud metrics.json neexistuje (harness totálně vybuchl), vytvoříme aspoň dummy, 
+        # aby reviewer.py nespadl na FileNotFoundError
+        if [ ! -f metrics.json ]; then
+          echo '{"test_status": "CRASHED", "metrics": {"requests_per_second": 0}}' > metrics.json
+        fi
         python -m agent.reviewer > reviewer_comment.md
 
     - name: Step 4 - Post Comment to PR
